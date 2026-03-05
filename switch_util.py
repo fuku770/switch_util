@@ -183,7 +183,72 @@ class Switch_util(object):
         user_num : ユーザー選択機能あり
         user_num=Noneのとき選択機能は無効化
         """
-        pass
+        while not self.is_home():
+            self.press(Button.HOME, 0.06, 1.0)
+
+        if self.is_match_template(None, 'play_still.png'):
+            self.press(Button.X, 0.1, 0.5)
+            self.press(Button.A, 0.1, 2.5)
+        if not soft == None:
+            i = 0
+            while not self.is_match_template(None, f'{self.switch_theme}/soft/{soft}.png'):
+                self.press(Hat.RIGHT, 0.1, 0.5)
+                i += 1
+                if i > 30:
+                    print('ソフトのタイトルが見つからないため中断します')
+                    self.finish()
+                    break
+        self.press(Button.A, 0.1, 0.5)
+
+        i = 0
+        while True:
+            i += 1
+            src = self.commands.camera.readFrame()
+            if self.is_match_template(src, f'{self.switch_theme}/user_select.png', 0.85, True, [50, 320, 260, 380]):
+                break
+            if self.is_match_template(src, f'{self.switch_theme}/update_notice.png', 0.85, True, [480, 350, 810, 470]):
+                self.press(Hat.TOP, 0.1, 0.5)
+                self.press(Button.A, 0.1, 0.5)
+                if not hasattr(self, 'notice_update'):
+                    self.notice_update = True
+                    self.commands.discord_text('アップデート通知')
+            elif i % 30 == 0:
+                self.press(Button.A, 0.1, 1.5)
+            else:
+                self.wait(0.3)
+
+        if user_num == None:
+            pass
+        else:
+            for _ in range(user_num):
+                self.press(Hat.RIGHT, 0.1, 0.2)
+            while True:
+                start_time = time.perf_counter()
+                while(time.perf_counter() - start_time < 5):
+                    src = self.commands.camera.readFrame()
+                    detect_flag, pos = self.get_colored_region_pos(src, True, [0, 410, 1280, 420])
+                    if detect_flag:
+                        break
+                    detect_flag, pos = self.get_colored_region_pos(src, True, [0, 544, 1280, 554])
+                    if detect_flag:
+                        break
+                    self.wait(0.1)
+                else:
+                    print('ユーザー選択に失敗しました')
+                    self.finish()
+                    break
+                cursor_position = (pos[0]-70)//141
+                n = cursor_position - user_num
+                if n == 0:
+                    break
+                elif n > 0:
+                    for _ in range(n):
+                        self.press(Hat.LEFT, 0.1, 0.2)
+                else:
+                    for _ in range(abs(n)):
+                        self.press(Hat.RIGHT, 0.1, 0.2)
+        self.press(Button.A, 0.1, 1.0)
+        return
 
     def reset_soft_for_switch(self, user_num: Optional[int] = None):
         """ 
@@ -245,7 +310,64 @@ class Switch_util(object):
         ユーザー選択機能あり
         user_num=Noneのとき選択機能は無効化
         """
-        pass
+        while not self.is_home():
+            self.press(Button.HOME, 0.06, 1.0)
+
+        if self.is_match_template(None, 'play_still.png'):
+            self.press(Button.Y, 0.1, 0.5)
+            self.press(Button.A, 0.1, 0.5)
+        else:
+            self.press(Button.A, 0.1, 0.5)
+
+        i = 0
+        while True:
+            i += 1
+            src = self.commands.camera.readFrame()
+            if self.is_match_template(src, f'{self.switch_theme}/user_select.png', 0.85, True, [50, 320, 260, 380]):
+                break
+            if self.is_match_template(src, f'{self.switch_theme}/update_notice.png', 0.85, True, [480, 350, 810, 470]):
+                self.press(Hat.TOP, 0.1, 0.5)
+                self.press(Button.A, 0.1, 0.5)
+                if not hasattr(self, 'notice_update'):
+                    self.notice_update = True
+                    self.commands.discord_text('アップデート通知')
+            elif i % 30 == 0:
+                self.press(Button.A, 0.1, 1.5)
+            else:
+                self.wait(0.3)
+
+        if user_num == None:
+            pass
+        else:
+            for _ in range(user_num):
+                self.press(Hat.RIGHT, 0.1, 0.2)
+            while True:
+                start_time = time.perf_counter()
+                while(time.perf_counter() - start_time < 5):
+                    src = self.commands.camera.readFrame()
+                    detect_flag, pos = self.get_colored_region_pos(src, True, [0, 410, 1280, 420])
+                    if detect_flag:
+                        break
+                    detect_flag, pos = self.get_colored_region_pos(src, True, [0, 544, 1280, 554])
+                    if detect_flag:
+                        break
+                    self.wait(0.1)
+                else:
+                    print('ユーザー選択に失敗しました')
+                    self.finish()
+                    break
+                cursor_position = (pos[0]-70)//141
+                n = cursor_position - user_num
+                if n == 0:
+                    break
+                elif n > 0:
+                    for _ in range(n):
+                        self.press(Hat.LEFT, 0.1, 0.2)
+                else:
+                    for _ in range(abs(n)):
+                        self.press(Hat.RIGHT, 0.1, 0.2)
+        self.press(Button.A, 0.1, 1.0)
+        return
 
     def reboot_switch_for_switch(self):
         """
@@ -318,6 +440,7 @@ class Switch_util(object):
     def reboot_switch_for_switch2(self):
         """
         スイッチ再起動(switch2用)
+        国内版に再起動コマンドは存在しない（はず）
         """
         pass
         
@@ -487,6 +610,101 @@ class Switch_util(object):
             return True, top_left + np.array([w/2, h/2]).astype(int)
         return False, np.array([0, 0])
 
+    def get_colored_region_pos(
+        self,
+        base_image=None,
+        trim=False,
+        trim_area=[0, 0, 1280, 720],
+        show_debug_image=False,
+        min_area=10
+        ) -> tuple[bool, np.ndarray]:
+        """
+        白または黒背景から色付き領域の中心座標を取得する
+        """
+
+        if not hasattr(self.commands, 'gui'):
+            self.commands.gui = None
+
+        # 画像取得
+        if base_image is None:
+            base_image = self.commands.camera.readFrame()
+
+        # トリム
+        if trim:
+            base_image = base_image[
+                trim_area[1]:trim_area[3],
+                trim_area[0]:trim_area[2]
+            ]
+
+        # グレースケール変換
+        gray = cv2.cvtColor(base_image, cv2.COLOR_BGR2GRAY)
+
+        # 背景色判定（平均輝度で判断）
+        mean_val = np.mean(gray)
+
+        if mean_val > 127:
+            # 白背景 → 暗い部分が対象
+            _, mask = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
+        else:
+            # 黒背景 → 明るい部分が対象
+            _, mask = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY)
+
+        # ノイズ除去
+        kernel = np.ones((5,5), np.uint8)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+        if show_debug_image:
+            cv2.imshow("mask", mask)
+            cv2.waitKey()
+
+        # 輪郭検出
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        if not contours:
+            return False, np.array([0, 0])
+
+        # 最大領域を取得
+        largest = max(contours, key=cv2.contourArea)
+
+        if cv2.contourArea(largest) < min_area:
+            return False, np.array([0, 0])
+
+        x, y, w, h = cv2.boundingRect(largest)
+
+        center = np.array([x + w//2, y + h//2])
+
+        # トリム補正
+        if trim:
+            tag2 = str(time.perf_counter())
+            center += np.array([trim_area[0], trim_area[1]])
+            self.commands.gui.delete("ImageRecRect")
+            self.commands.gui.ImgRect(*(np.array([trim_area[0],trim_area[1]])),
+                            *(np.array([trim_area[2],trim_area[3]])),
+                            outline='orange',
+                            tag=tag2,
+                            ms=1500)
+
+        draw_x = x
+        draw_y = y
+
+        if trim:
+            draw_x += trim_area[0]
+            draw_y += trim_area[1]
+
+        if self.commands.gui:
+            tag = str(time.perf_counter())
+            self.commands.gui.delete("ImageRecRect")
+            self.commands.gui.ImgRect(
+                draw_x, draw_y,
+                draw_x + w, draw_y + h,
+                outline='blue',
+                tag=tag,
+                ms=1500
+            )
+
+        return True, center
+
+
 
     def return_from_date_and_time_setting(self):
         """
@@ -507,167 +725,208 @@ class Switch_util(object):
         print("日時を変更します") 
 
         self.get_switch_info()
+        
+        if self.switch_version == 'switch':
+            self.move_to_date_and_time_setting_for_switch(reset_time=reset_time)
+        else:
+            self.move_to_date_and_time_setting_for_switch2(reset_time=reset_time)
+
+
+    def move_to_date_and_time_setting_for_switch(self, reset_time: bool):
+        """
+        日時変更画面まで移動する(switch用)
+        reset_time 現在時刻に戻す
+        """
+
         while not self.is_home():
             self.press(Button.HOME, 0.06, 1.0)
         
-        if self.switch_version == 'switch':
-            """
-            switch用
-            """
-            while True:
-                self.move_to_setting_menu()
-                # 日付と時刻を選択
-                self.send_command(Lstick_down, wait=0.04)
-                self.send_command(Rstick_down, wait=0.04)
-                self.send_command(Neutral, wait=0.3)
-                self.press(Direction.DOWN, duration=0.56, wait=0.1)
-                for _ in range(5):
-                    if self.is_match_template(None, f'{self.switch_theme}/select_date_change.png', 0.9):
-                        break
-                    else:
-                        self.press(Direction.DOWN, 0.04, 0.1)
-                else:
-                    self.press(Button.HOME, 0.1, 1.0)
-                    continue
-                self.send_command(Button_A, wait=0.04)
-                self.send_command(Neutral, wait=0.50) 
-
-                # 正常に日付と時刻を選択できたかを検知する。入れなかったらHOMEを押して最初からやり直す。
-                if self.is_match_template(None, f'{self.switch_theme}/check_change.png', 0.9, True, [65, 31, 168, 101]):
-                    break
-                else:
-                    self.press(Button.HOME, 0.1, 1.0)
-
-            if reset_time : 
-                for _ in range(2) : self.press(Button.A, 0.1, 0.5)
-                print("現在時刻に戻しました")
-                return
-
-            #インターネットに同期するにチェックがあったらoffに切り替える
-            if self.is_match_template(None, f'{self.switch_theme}/on.png', 0.9):
-                self.press(Button.A, wait=1.0)
-
-            # 現在の日付と時刻を選択
+        while True:
+            self.move_to_setting_menu()
+            # 日付と時刻を選択
             self.send_command(Lstick_down, wait=0.04)
             self.send_command(Rstick_down, wait=0.04)
+            self.send_command(Neutral, wait=0.3)
+            self.press(Direction.DOWN, duration=0.56, wait=0.1)
+            for _ in range(5):
+                if self.is_match_template(None, f'{self.switch_theme}/select_date_change.png', 0.9):
+                    break
+                else:
+                    self.press(Direction.DOWN, 0.04, 0.1)
+            else:
+                self.press(Button.HOME, 0.1, 1.0)
+                continue
+            self.send_command(Button_A, wait=0.04)
+            self.send_command(Neutral, wait=0.50) 
 
-        else:
-            """
-            switch2用
-            """
-            self.finish()
+            # 正常に日付と時刻を選択できたかを検知する。入れなかったらHOMEを押して最初からやり直す。
+            if self.is_match_template(None, f'{self.switch_theme}/check_change.png', 0.9, True, [65, 31, 168, 101]):
+                break
+            else:
+                self.press(Button.HOME, 0.1, 1.0)
+
+        if reset_time : 
+            for _ in range(2) : self.press(Button.A, 0.1, 0.5)
+            print("現在時刻に戻しました")
+            return
+
+        #インターネットに同期するにチェックがあったらoffに切り替える
+        if self.is_match_template(None, f'{self.switch_theme}/on.png', 0.9):
+            self.press(Button.A, wait=1.0)
+
+        # 現在の日付と時刻を選択
+        self.send_command(Lstick_down, wait=0.04)
+        self.send_command(Rstick_down, wait=0.04)
+
+    def move_to_date_and_time_setting_for_switch2(self, reset_time: bool):
+        """
+        日時変更画面まで移動する(switch2用)
+        reset_time 現在時刻に戻す
+        """
+
+        while not self.is_home():
+            self.press(Button.HOME, 0.06, 1.0)
+        
+        while True:
+            self.move_to_setting_menu()
+            # 日付と時刻を選択
+            wait_time = 0.1
+            self.send_command(Lstick_down, wait=wait_time)
+            self.send_command(Rstick_down, wait=wait_time)
+            self.send_command(Lstick_down, wait=wait_time)
+            self.send_command(Rstick_down, wait=wait_time)
+            self.send_command(Lstick_down, wait=wait_time)
+            self.send_command(Neutral, wait=0.3)
+            for _ in range(5):
+                if self.is_match_template(None, f'{self.switch_theme}/select_date_change.png', 0.9):
+                    break
+                else:
+                    self.press(Hat.BTM, 0.04, 0.2)
+            else:
+                self.press(Button.HOME, 0.1, 1.0)
+                continue
+            self.send_command(Button_A, wait=0.04)
+            self.send_command(Neutral, wait=0.50) 
+
+            # 正常に日付と時刻を選択できたかを検知する。入れなかったらHOMEを押して最初からやり直す。
+            if self.is_match_template(None, f'{self.switch_theme}/check_change.png', 0.9, True, [69, 27, 118, 78]):
+                break
+            else:
+                self.press(Button.HOME, 0.1, 1.0)
+
+        if reset_time : 
+            for _ in range(2) : self.press(Button.A, 0.1, 0.5)
+            print("現在時刻に戻しました")
+            return
+
+        # インターネットに同期するにチェックがあったらoffに切り替える
+        if self.is_match_template(None, f'{self.switch_theme}/on.png', 0.9, True, [949, 107, 1106, 225]):
+            self.press(Button.A, wait=1.0)
+
+        # 現在の日付と時刻を選択
+        self.send_command(Lstick_down, wait=0.04)
+        self.send_command(Rstick_down, wait=0.04)
+
 
     def change_date_and_time(self, target_year, target_month, target_day, target_hour, target_minute, init=False):
         """
         指定した日時に変更
         th | 日時検出閾値
         """
+        th = 0.9
+        self.send_command(Button_A, wait=0.04)  # 時刻変更でminを変更しない場合はwaitを大きくすること。
+        self.send_command(Neutral, wait=0.20)
 
-        if self.switch_version == 'switch':
-            """
-            switch用
-            """
-            th = 0.9
-            self.send_command(Button_A, wait=0.04)  # 時刻変更でminを変更しない場合はwaitを大きくすること。
-            self.send_command(Neutral, wait=0.20)
+        if init and self.switch_version == 'switch':
+            self.send_command(Rstick_left, wait=0.04)
+            self.send_command(Lstick_left, wait=0.04)
+            self.send_command(Rstick_left, wait=0.04)
+            self.send_command(Lstick_left, wait=0.04)
+            self.send_command(Rstick_left, wait=0.04)
+        self.send_command(Neutral, wait=0.50)
 
-            if init:
-                self.send_command(Rstick_left, wait=0.04)
-                self.send_command(Lstick_left, wait=0.04)
-                self.send_command(Rstick_left, wait=0.04)
-                self.send_command(Lstick_left, wait=0.04)
-                self.send_command(Rstick_left, wait=0.04)
-            self.send_command(Neutral, wait=0.50)
-
-            while True:
-                # 選択している部分(年)とその他を別々に検知する。
-                date_upper = self.check_date(0, th=th)
-                date_lower = self.check_date(1, th=th)
-                date = date_upper + date_lower
-                if len(date) == 12:
-                    break
-                else:
-                    th = th - 0.01
-                if th < 0.8:
-                    print("日時認識に失敗しました\nプログラムを終了します")
-                    self.finish()
-
-            current_year = int(date[0:4])
-            current_month = int(date[4:6])
-            current_day = int(date[6:8])
-            current_hour = int(date[8:10])
-            current_minute = int(date[10:12])
-
-            year_offset = target_year - current_year
-
-            month_offset = target_month - current_month
-            if month_offset > 6:
-                month_offset = month_offset - 12
-            elif month_offset < -6:
-                month_offset = month_offset + 12
-
-            # 時間変更画面(1)
-            self.change_value(year_offset)
-            self.send_command(Lstick_right, wait=0.04)
-            self.change_value(month_offset)
-            self.send_command(Neutral, wait=0.10)
-
-            self.wait(0.4)
-
-            while True:
-                date_lower2 = self.check_date(2, th=th)
-                if len(date_lower2) == 6:
-                    break
-                else:
-                    th = th - 0.01
-                if th < 0.8:
-                    print("日時認識に失敗しました\nプログラムを終了します")
-                    self.finish()
-
-            current_day = int(date_lower2[0:2])
-            current_hour = int(date_lower2[2:4])
-            current_minute = int(date_lower2[4:6])
-
-            day_offset = target_day - current_day 
-            if target_month in [1, 3, 5, 7, 8, 10, 12]:
-                a = [15, 31]
-            elif target_month in [4, 6, 9, 11]:
-                a = [15, 30]
+        while True:
+            # 選択している部分(年)とその他を別々に検知する。
+            date_upper = self.check_date(0, th=th)
+            date_lower = self.check_date(1, th=th)
+            date = date_upper + date_lower
+            if len(date) == 12:
+                break
             else:
-                a = [14, 28] if target_year % 4 != 0 else [14, 29]
-            if day_offset > a[0]:
-                day_offset = day_offset - a[1]
-            elif day_offset < -a[0]:
-                day_offset = day_offset + a[1]
+                th = th - 0.01
+            if th < 0.8:
+                print("日時認識に失敗しました\nプログラムを終了します")
+                self.finish()
 
-            hour_offset = target_hour - current_hour
-            if hour_offset > 12:
-                hour_offset = hour_offset - 24
-            elif hour_offset < -12:
-                hour_offset = hour_offset + 24
+        current_year = int(date[0:4])
+        current_month = int(date[4:6])
+        current_day = int(date[6:8])
+        current_hour = int(date[8:10])
+        current_minute = int(date[10:12])
 
-            min_offset = target_minute - current_minute
-            if min_offset > 30:
-                min_offset = min_offset - 60
-            elif min_offset < -30:
-                min_offset = min_offset + 60
+        year_offset = target_year - current_year
 
-            self.send_command(Rstick_right, wait=0.04)
-            self.change_value(day_offset)
-            self.send_command(Lstick_right, wait=0.04)
-            self.change_value(hour_offset)
-            self.send_command(Rstick_right, wait=0.04)
-            self.change_value(min_offset)
-            self.send_command(Lstick_right, wait=0.04)
-            self.send_command(Button_A, wait=0.04)
-            self.send_command(Neutral, wait=0.25)  # HOME画面に戻らない場合は要調整。
+        month_offset = target_month - current_month
+        if month_offset > 6:
+            month_offset = month_offset - 12
+        elif month_offset < -6:
+            month_offset = month_offset + 12
 
+        # 時間変更画面(1)
+        self.change_value(year_offset)
+        self.send_command(Lstick_right, wait=0.04)
+        self.change_value(month_offset)
+        self.send_command(Neutral, wait=0.10)
+
+        self.wait(0.4)
+
+        while True:
+            date_lower2 = self.check_date(2, th=th)
+            if len(date_lower2) == 6:
+                break
+            else:
+                th = th - 0.01
+            if th < 0.8:
+                print("日時認識に失敗しました\nプログラムを終了します")
+                self.finish()
+
+        current_day = int(date_lower2[0:2])
+        current_hour = int(date_lower2[2:4])
+        current_minute = int(date_lower2[4:6])
+
+        day_offset = target_day - current_day 
+        if target_month in [1, 3, 5, 7, 8, 10, 12]:
+            a = [15, 31]
+        elif target_month in [4, 6, 9, 11]:
+            a = [15, 30]
         else:
-            """
-            switch2用
-            """
-            self.finish()
+            a = [14, 28] if target_year % 4 != 0 else [14, 29]
+        if day_offset > a[0]:
+            day_offset = day_offset - a[1]
+        elif day_offset < -a[0]:
+            day_offset = day_offset + a[1]
 
+        hour_offset = target_hour - current_hour
+        if hour_offset > 12:
+            hour_offset = hour_offset - 24
+        elif hour_offset < -12:
+            hour_offset = hour_offset + 24
+
+        min_offset = target_minute - current_minute
+        if min_offset > 30:
+            min_offset = min_offset - 60
+        elif min_offset < -30:
+            min_offset = min_offset + 60
+
+        self.send_command(Rstick_right, wait=0.04)
+        self.change_value(day_offset)
+        self.send_command(Lstick_right, wait=0.04)
+        self.change_value(hour_offset)
+        self.send_command(Rstick_right, wait=0.04)
+        self.change_value(min_offset)
+        self.send_command(Lstick_right, wait=0.04)
+        self.send_command(Button_A, wait=0.04)
+        self.send_command(Neutral, wait=0.25)  # HOME画面に戻らない場合は要調整。
 
 
     def move_to_setting_menu(self):
@@ -713,9 +972,32 @@ class Switch_util(object):
         """
         設定メニューまで移動する(switch2用)
         """
-        pass
+        # ゲーム選択画面⇒設定
+        self.send_command(Lstick_left, wait=0.04)
+        self.send_command(Neutral, wait=0.16)  # 設定画面に移動できない場合は要調整。
+        self.send_command(Lstick_down, wait=0.04)
+        self.send_command(Lstick_left, wait=0.04)
+        self.send_command(Button_A, wait=0.80)
 
-
+        # 設定の一番下まで移動
+        wait_time = 0.1
+        self.send_command(Lstick_down, wait=wait_time)
+        self.send_command(Rstick_down, wait=wait_time)
+        self.send_command(Lstick_down, wait=wait_time)
+        self.send_command(Rstick_down, wait=wait_time)
+        self.send_command(Lstick_down, wait=wait_time)
+        self.send_command(Rstick_down, wait=wait_time)
+        self.send_command(Lstick_down, wait=wait_time)
+        self.send_command(Rstick_down, wait=wait_time)
+        self.send_command(Lstick_down, wait=wait_time)
+        self.send_command(Rstick_down, wait=wait_time)
+        self.send_command(Lstick_down, wait=wait_time)
+        self.send_command(Rstick_down, wait=wait_time)
+        self.send_command(Lstick_down, wait=wait_time)
+        self.send_command(Rstick_down, wait=wait_time)
+        self.send_command(Lstick_down, wait=wait_time)
+        self.send_command(Rstick_down, wait=wait_time)
+        self.send_command(Button_A, wait=0.20)
 
     def check_date(self, num, th=0.9):
         """
@@ -724,18 +1006,32 @@ class Switch_util(object):
         TEMPLATE_PATH = f"./Commands/PythonCommands/switch_util/image/{self.switch_version}/"
 
         src = self.commands.camera.readFrame()
-        if num == 0:
-            src = src[437:500, 182:336]
-            sel_color = 0  # 選択時
-        elif num == 1:
-            src = src[437:500, 336:887]
-            sel_color = 1  # 非選択時
-        elif num == 2:
-            src = src[437:500, 474:887]
-            sel_color = 1  # 非選択時
+        if self.switch_version == 'switch':
+            if num == 0:
+                src = src[437:500, 182:336]
+                sel_color = 0  # 選択時
+            elif num == 1:
+                src = src[437:500, 336:887]
+                sel_color = 1  # 非選択時
+            elif num == 2:
+                src = src[437:500, 474:887]
+                sel_color = 1  # 非選択時
+            else:
+                src = src[437:500, 182:887]
+                sel_color = 1  # 非選択時
         else:
-            src = src[437:500, 182:887]
-            sel_color = 1  # 非選択時
+            if num == 0:
+                src = src[320:370, 170:300]
+                sel_color = 0  # 選択時
+            elif num == 1:
+                src = src[320:370, 360:900]
+                sel_color = 1  # 非選択時
+            elif num == 2:
+                src = src[320:370, 480:900]
+                sel_color = 1  # 非選択時
+            else:
+                src = src[320:370, 170:900]
+                sel_color = 1  # 非選択時
 
         img_gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
 
@@ -780,142 +1076,170 @@ class Switch_util(object):
         """
         高速日時変更(数値変更部分)
         """
+        if self.switch_version == 'switch':
+            wait_time = 0.04
+        else:
+            wait_time = 0.1
         if cnt == 0:
             pass
         elif cnt > 0:
             for i in range(cnt):
                 if i % 2 == 0:
-                    self.send_command(Lstick_up, wait=0.04)
+                    self.send_command(Lstick_up, wait=wait_time)
                 else:
-                    self.send_command(Rstick_up, wait=0.04)
+                    self.send_command(Rstick_up, wait=wait_time)
         else:
             for i in range(-cnt):
                 if i % 2 == 0:
-                    self.send_command(Lstick_down, wait=0.04)
+                    self.send_command(Lstick_down, wait=wait_time)
                 else:
-                    self.send_command(Rstick_down, wait=0.04)
+                    self.send_command(Rstick_down, wait=wait_time)
         return
 
     def add_1year(self):
         """
         年を1年増やす
         """
-        wtime = 0.04
-        self.press(Button.A, wait=wtime)
-        self.send_command(Rstick_down, wait=wtime)
-        self.send_command(Lstick_down, wait=wtime)
-        self.send_command(Rstick_left, wait=wtime)
-        self.send_command(Lstick_left, wait=wtime)
-        self.send_command(Rstick_left, wait=wtime)
-        self.send_command(Lstick_left, wait=wtime)
-        self.send_command(Rstick_left, wait=wtime)
-        self.send_command(Lstick_up, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Neutral, wait=wtime * 2)
-        self.press(Button.A, wait=wtime)
-        self.send_command(Rstick_down, wait=wtime)
-        self.send_command(Lstick_down, wait=wtime)
-        self.send_command(Neutral, wait=wtime * 2)
+        if self.switch_version == 'switch':
+            wait_time = 0.04
+            self.press(Button.A, wait=wait_time)
+            self.send_command(Rstick_down, wait=wait_time)
+            self.send_command(Lstick_down, wait=wait_time)
+            self.send_command(Rstick_left, wait=wait_time)
+            self.send_command(Lstick_left, wait=wait_time)
+            self.send_command(Rstick_left, wait=wait_time)
+            self.send_command(Lstick_left, wait=wait_time)
+            self.send_command(Rstick_left, wait=wait_time)
+            self.send_command(Lstick_up, wait=wait_time)
+            self.send_command(Rstick_right, wait=wait_time)
+            self.send_command(Lstick_right, wait=wait_time)
+            self.send_command(Rstick_right, wait=wait_time)
+            self.send_command(Lstick_right, wait=wait_time)
+            self.send_command(Rstick_right, wait=wait_time)
+            self.send_command(Neutral, wait=wait_time * 2)
+            self.press(Button.A, wait=wait_time)
+            self.send_command(Rstick_down, wait=wait_time)
+            self.send_command(Lstick_down, wait=wait_time)
+            self.send_command(Neutral, wait=wait_time * 2)
+        else:
+            self.add_1year_once()
 
     def add_1year_once(self):
         """
         年を1年増やす(初回)
         """
-        wtime = 0.04
-        self.press(Button.A, wait=wtime)
-        self.send_command(Lstick_up, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Neutral, wait=wtime * 2)
-        self.press(Button.A, wait=wtime * 3)
+        wait_time = 0.04
+        self.press(Button.A, wait=0.1)
+        self.send_command(Lstick_up, wait=wait_time)
+        self.send_command(Rstick_right, wait=wait_time)
+        self.send_command(Lstick_right, wait=wait_time)
+        self.send_command(Rstick_right, wait=wait_time)
+        self.send_command(Lstick_right, wait=wait_time)
+        self.send_command(Rstick_right, wait=wait_time)
+        self.send_command(Neutral, wait=wait_time * 2)
+        self.press(Button.A, wait=wait_time * 3)
 
     def init_year(self):
         """
         2000年に戻す
         """
-        wtime = 0.04
-        self.send_command(Button_A, wait=wtime)
-        self.send_command(Neutral, wait=0.16)
-        self.send_command(Rstick_down, wait=wtime)
-        self.send_command(Lstick_down, wait=wtime)
-        self.send_command(Rstick_left, wait=wtime)
-        self.send_command(Lstick_left, wait=wtime)
-        self.send_command(Rstick_left, wait=wtime)
-        self.send_command(Lstick_left, wait=wtime)
-        self.send_command(Rstick_left, wait=wtime)
-        for _ in range(30):
-            self.send_command(Lstick_down, wait=wtime)
-            self.send_command(Rstick_down, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_down, wait=wtime)
-        self.send_command(Button_A, wait=wtime)
-        self.send_command(Neutral, wait=0.16)
-        self.send_command(Lstick_down, wait=wtime)
-        self.send_command(Rstick_down, wait=wtime)
+        if self.switch_version == 'switch':
+            wait_time = 0.04
+            self.send_command(Button_A, wait=wait_time)
+            self.send_command(Neutral, wait=0.16)
+            self.send_command(Rstick_down, wait=wait_time)
+            self.send_command(Lstick_down, wait=wait_time)
+            self.send_command(Rstick_left, wait=wait_time)
+            self.send_command(Lstick_left, wait=wait_time)
+            self.send_command(Rstick_left, wait=wait_time)
+            self.send_command(Lstick_left, wait=wait_time)
+            self.send_command(Rstick_left, wait=wait_time)
+            for _ in range(30):
+                self.send_command(Lstick_down, wait=wait_time)
+                self.send_command(Rstick_down, wait=wait_time)
+            self.send_command(Lstick_right, wait=wait_time)
+            self.send_command(Rstick_right, wait=wait_time)
+            self.send_command(Lstick_right, wait=wait_time)
+            self.send_command(Rstick_right, wait=wait_time)
+            self.send_command(Lstick_right, wait=wait_time)
+            self.send_command(Rstick_down, wait=wait_time)
+            self.send_command(Button_A, wait=wait_time)
+            self.send_command(Neutral, wait=0.16)
+            self.send_command(Lstick_down, wait=wait_time)
+            self.send_command(Rstick_down, wait=wait_time)
+        else:
+            wait_time = 0.04
+            self.send_command(Button_A, wait=wait_time)
+            self.send_command(Neutral, wait=0.16)
+            for _ in range(30):
+                self.send_command(Lstick_down, wait=0.1)
+                self.send_command(Rstick_down, wait=0.1)
+            self.send_command(Lstick_right, wait=wait_time)
+            self.send_command(Rstick_right, wait=wait_time)
+            self.send_command(Lstick_right, wait=wait_time)
+            self.send_command(Rstick_right, wait=wait_time)
+            self.send_command(Lstick_right, wait=wait_time)
+            self.send_command(Rstick_down, wait=wait_time)
+            self.send_command(Button_A, wait=wait_time)
+            self.send_command(Neutral, wait=0.16)
+            self.send_command(Lstick_down, wait=wait_time)
+            self.send_command(Rstick_down, wait=wait_time)
 
     def add_1day(self):
         """
         日を1日増やす
         """
-        wtime = 0.04
-        self.press(Button.A, wait=wtime)
-        self.send_command(Rstick_down, wait=wtime)
-        self.send_command(Lstick_down, wait=wtime)
-        self.send_command(Rstick_left, wait=wtime)
-        self.send_command(Lstick_left, wait=wtime)
-        self.send_command(Rstick_left, wait=wtime)
-        self.send_command(Lstick_up, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Neutral, wait=wtime)
-        self.press(Button.A, wait=wtime)
-        self.send_command(Rstick_down, wait=wtime)
-        self.send_command(Lstick_down, wait=wtime)
-        self.send_command(Neutral, wait=wtime)
+        if self.switch_version == 'switch':
+            wait_time = 0.04
+            self.press(Button.A, wait=wait_time)
+            self.send_command(Rstick_down, wait=wait_time)
+            self.send_command(Lstick_down, wait=wait_time)
+            self.send_command(Rstick_left, wait=wait_time)
+            self.send_command(Lstick_left, wait=wait_time)
+            self.send_command(Rstick_left, wait=wait_time)
+            self.send_command(Lstick_up, wait=wait_time)
+            self.send_command(Rstick_right, wait=wait_time)
+            self.send_command(Lstick_right, wait=wait_time)
+            self.send_command(Rstick_right, wait=wait_time)
+            self.send_command(Neutral, wait=wait_time)
+            self.press(Button.A, wait=wait_time)
+            self.send_command(Rstick_down, wait=wait_time)
+            self.send_command(Lstick_down, wait=wait_time)
+            self.send_command(Neutral, wait=wait_time)
+        else:
+            self.add_1day_once()
 
     def add_1day_once(self):
         """
         日を1日増やす
         """
-        wtime = 0.04
-        self.press(Button.A, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Lstick_up, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Neutral, wait=wtime * 2)
-        self.press(Button.A, wait=wtime)
-        self.send_command(Rstick_down, wait=wtime)
-        self.send_command(Lstick_down, wait=wtime)
-        self.send_command(Neutral, wait=wtime)
+        wait_time = 0.04
+        self.press(Button.A, wait=0.1)
+        self.send_command(Lstick_right, wait=wait_time)
+        self.send_command(Rstick_right, wait=wait_time)
+        self.send_command(Lstick_up, wait=wait_time)
+        self.send_command(Rstick_right, wait=wait_time)
+        self.send_command(Lstick_right, wait=wait_time)
+        self.send_command(Rstick_right, wait=wait_time)
+        self.send_command(Neutral, wait=wait_time * 2)
+        self.press(Button.A, wait=wait_time)
+        self.send_command(Rstick_down, wait=wait_time)
+        self.send_command(Lstick_down, wait=wait_time)
+        self.send_command(Neutral, wait=wait_time)
 
     def add_1day_once_end(self):
         """
         日を1日増やす
         """
-        wtime = 0.04
-        self.press(Button.A, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Lstick_up, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Lstick_right, wait=wtime)
-        self.send_command(Rstick_right, wait=wtime)
-        self.send_command(Neutral, wait=wtime * 2)
+        wait_time = 0.04
+        self.press(Button.A, wait=0.1)
+        self.send_command(Lstick_right, wait=wait_time)
+        self.send_command(Rstick_right, wait=wait_time)
+        self.send_command(Lstick_up, wait=wait_time)
+        self.send_command(Rstick_right, wait=wait_time)
+        self.send_command(Lstick_right, wait=wait_time)
+        self.send_command(Rstick_right, wait=wait_time)
+        self.send_command(Neutral, wait=wait_time * 2)
         self.press(Button.A, wait=0.1)
 
     def set_neutral(self):
