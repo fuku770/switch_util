@@ -161,12 +161,8 @@ class Switch_util(object):
                 [50, 320, 260, 380],
             ):
                 break
-            if self.is_match_template(src, f"{self._state.theme}/update_notice.png"):
-                self.commands.press(Hat.TOP, 0.1, 0.5)
-                self.commands.press(Button.A, 0.1, 0.5)
-                if not self._state.notice_update:
-                    self._state.notice_update = True
-                    self.commands.discord_text("アップデート通知")
+            if self.is_update_notice(src):
+                self.escape_update_notice()
             elif i % 30 == 0:
                 self.commands.press(Button.A, 0.1, 1.5)
             else:
@@ -240,18 +236,8 @@ class Switch_util(object):
                 [50, 320, 260, 380],
             ):
                 break
-            if self.is_match_template(
-                src,
-                f"{self._state.theme}/update_notice.png",
-                0.85,
-                True,
-                [480, 350, 810, 470],
-            ):
-                self.commands.press(Hat.TOP, 0.1, 0.5)
-                self.commands.press(Button.A, 0.1, 0.5)
-                if not self._state.notice_update:
-                    self._state.notice_update = True
-                    self.commands.discord_text("アップデート通知")
+            if self.is_update_notice(src):
+                self.escape_update_notice()
             elif i % 30 == 0:
                 self.commands.press(Button.A, 0.1, 1.5)
             else:
@@ -321,12 +307,8 @@ class Switch_util(object):
                 [50, 320, 260, 380],
             ):
                 break
-            if self.is_match_template(src, f"{self._state.theme}/update_notice.png"):
-                self.commands.press(Hat.TOP, 0.1, 0.5)
-                self.commands.press(Button.A, 0.1, 0.5)
-                if not self._state.notice_update:
-                    self._state.notice_update = True
-                    self.commands.discord_text("アップデート通知")
+            if self.is_update_notice(src):
+                self.escape_update_notice()
             elif i % 30 == 0:
                 self.commands.press(Button.A, 0.1, 1.5)
             else:
@@ -386,18 +368,8 @@ class Switch_util(object):
                 [50, 320, 260, 380],
             ):
                 break
-            if self.is_match_template(
-                src,
-                f"{self._state.theme}/update_notice.png",
-                0.85,
-                True,
-                [480, 350, 810, 470],
-            ):
-                self.commands.press(Hat.TOP, 0.1, 0.5)
-                self.commands.press(Button.A, 0.1, 0.5)
-                if not self._state.notice_update:
-                    self._state.notice_update = True
-                    self.commands.discord_text("アップデート通知")
+            if self.is_update_notice(src):
+                self.escape_update_notice()
             elif i % 30 == 0:
                 self.commands.press(Button.A, 0.1, 1.5)
             else:
@@ -538,6 +510,25 @@ class Switch_util(object):
             return self.is_match_template(
                 src, "switch/home.png"
             ) or self.is_match_template(src, "switch2/home.png")
+
+    def is_update_notice(self, src=None):
+        if src is None:
+            src = self.commands.camera.readFrame()
+        return self.is_match_template(
+                src,
+                f"{self._state.theme}/update_notice.png",
+                0.85,
+            )
+
+    def escape_update_notice(self):
+        """
+        アップデート通知を閉じる
+        """
+        self.commands.press(Hat.TOP, 0.1, 0.5)
+        self.commands.press(Button.A, 0.1, 1.5)
+        if not self._state.notice_update:
+            self._state.notice_update = True
+            self.commands.discord_text("アップデート通知")
 
     def is_match_template(
         self,
@@ -836,7 +827,10 @@ class Switch_util(object):
         """
         while not self.is_home():
             self.commands.press(Button.HOME, 0.06, 2.0)
-        while self.is_home():
+        while self.is_home() or self.is_update_notice():
+            if self.is_update_notice():
+                self.escape_update_notice()
+                continue
             self.commands.press(Button.HOME, 0.06, 2.0)
 
     def move_to_date_and_time_setting(self, reset_time=False):
