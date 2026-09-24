@@ -1,6 +1,7 @@
 from Commands.PythonCommandBase import ImageProcPythonCommand
 from Commands.Keys import KeyPress, Button, Hat, Direction
 from typing import Optional
+from dataclasses import dataclass
 import time
 import cv2
 import numpy as np
@@ -25,22 +26,31 @@ Neutral3 = "0x0000 8"  # NEUTRAL
 charlist = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 
+@dataclass
+class _SwitchState:
+    """
+    Switch_util のメソッド間で受け渡す内部状態
+    """
+
+    version: Optional[str] = None  # "switch" / "switch2"。未判定なら None
+    theme: Optional[str] = None  # "white" / "black"。未判定なら None
+    notice_update: bool = False  # アップデート通知を Discord に送信済みか
+    debug: bool = False
+
+
 class Switch_util(object):
 
     def __init__(self, commands: ImageProcPythonCommand):
         self.commands = commands
-        if hasattr(self.commands, "debug"):
-            self.debug = self.commands.debug
-        else:
-            self.debug = False
+        self._state = _SwitchState(debug=getattr(commands, "debug", False))
 
     def get_switch_info(self):
         """
         switch1,2およびテーマカラーの判定
         """
-        if hasattr(self, "switch_version") and hasattr(self, "switch_theme"):
+        if self._state.version is not None and self._state.theme is not None:
             return
-        elif hasattr(self, "switch_version"):
+        elif self._state.version is not None:
             while not self.is_home():
                 self.commands.press(Button.HOME, 0.06, 1.0)
         else:
@@ -52,23 +62,23 @@ class Switch_util(object):
                     break
                 self.commands.press(Button.HOME, 0.06, 1.0)
             if self.is_match_template(src, "switch/home.png"):
-                self.switch_version = "switch"
+                self._state.version = "switch"
             elif self.is_match_template(src, "switch2/home.png"):
-                self.switch_version = "switch2"
-            if self.debug:
-                print(self.switch_version)
+                self._state.version = "switch2"
+            if self._state.debug:
+                print(self._state.version)
 
-        if not hasattr(self, "switch_theme"):
+        if self._state.theme is None:
             for _ in range(6):
                 self.commands.press(Button.B, 0.05, 0.05)
             src = self.commands.camera.readFrame()[510:520, 100:110]
             img_gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
             if np.average(img_gray) > 128:
-                self.switch_theme = "white"
+                self._state.theme = "white"
             else:
-                self.switch_theme = "black"
-            if self.debug:
-                print(self.switch_theme)
+                self._state.theme = "black"
+            if self._state.debug:
+                print(self._state.theme)
 
     def start_soft(self, soft: Optional[str] = None, user_num: Optional[int] = None):
         """
@@ -80,7 +90,7 @@ class Switch_util(object):
         """
         self.get_switch_info()
 
-        if self.switch_version == "switch":
+        if self._state.version == "switch":
             self.start_soft_for_switch(soft=soft, user_num=user_num)
 
         else:
@@ -94,7 +104,7 @@ class Switch_util(object):
         """
         self.get_switch_info()
 
-        if self.switch_version == "switch":
+        if self._state.version == "switch":
             self.reset_soft_for_switch(user_num=user_num)
         else:
             self.reset_soft_for_switch2(user_num=user_num)
@@ -105,7 +115,7 @@ class Switch_util(object):
         """
         self.get_switch_info()
 
-        if self.switch_version == "switch":
+        if self._state.version == "switch":
             self.reboot_switch_for_switch()
         else:
             self.reboot_switch_for_switch2()
@@ -129,7 +139,7 @@ class Switch_util(object):
         if not soft == None:
             i = 0
             while not self.is_match_template(
-                None, f"{self.switch_theme}/soft/{soft}.png"
+                None, f"{self._state.theme}/soft/{soft}.png"
             ):
                 self.commands.press(Hat.RIGHT, 0.1, 0.5)
                 i += 1
@@ -145,17 +155,17 @@ class Switch_util(object):
             src = self.commands.camera.readFrame()
             if self.is_match_template(
                 src,
-                f"{self.switch_theme}/user_select.png",
+                f"{self._state.theme}/user_select.png",
                 0.85,
                 True,
                 [50, 320, 260, 380],
             ):
                 break
-            if self.is_match_template(src, f"{self.switch_theme}/update_notice.png"):
+            if self.is_match_template(src, f"{self._state.theme}/update_notice.png"):
                 self.commands.press(Hat.TOP, 0.1, 0.5)
                 self.commands.press(Button.A, 0.1, 0.5)
-                if not hasattr(self, "notice_update"):
-                    self.notice_update = True
+                if not self._state.notice_update:
+                    self._state.notice_update = True
                     self.commands.discord_text("アップデート通知")
             elif i % 30 == 0:
                 self.commands.press(Button.A, 0.1, 1.5)
@@ -170,7 +180,7 @@ class Switch_util(object):
                 for i in range(8):
                     if self.is_match_template(
                         src,
-                        f"{self.switch_theme}/user_icon_cursor.png",
+                        f"{self._state.theme}/user_icon_cursor.png",
                         0.85,
                         True,
                         [30 + 150 * i, 590, 200 + 150 * i, 640],
@@ -208,7 +218,7 @@ class Switch_util(object):
         if not soft == None:
             i = 0
             while not self.is_match_template(
-                None, f"{self.switch_theme}/soft/{soft}.png"
+                None, f"{self._state.theme}/soft/{soft}.png"
             ):
                 self.commands.press(Hat.RIGHT, 0.1, 0.5)
                 i += 1
@@ -224,7 +234,7 @@ class Switch_util(object):
             src = self.commands.camera.readFrame()
             if self.is_match_template(
                 src,
-                f"{self.switch_theme}/user_select.png",
+                f"{self._state.theme}/user_select.png",
                 0.85,
                 True,
                 [50, 320, 260, 380],
@@ -232,15 +242,15 @@ class Switch_util(object):
                 break
             if self.is_match_template(
                 src,
-                f"{self.switch_theme}/update_notice.png",
+                f"{self._state.theme}/update_notice.png",
                 0.85,
                 True,
                 [480, 350, 810, 470],
             ):
                 self.commands.press(Hat.TOP, 0.1, 0.5)
                 self.commands.press(Button.A, 0.1, 0.5)
-                if not hasattr(self, "notice_update"):
-                    self.notice_update = True
+                if not self._state.notice_update:
+                    self._state.notice_update = True
                     self.commands.discord_text("アップデート通知")
             elif i % 30 == 0:
                 self.commands.press(Button.A, 0.1, 1.5)
@@ -305,17 +315,17 @@ class Switch_util(object):
             src = self.commands.camera.readFrame()
             if self.is_match_template(
                 src,
-                f"{self.switch_theme}/user_select.png",
+                f"{self._state.theme}/user_select.png",
                 0.85,
                 True,
                 [50, 320, 260, 380],
             ):
                 break
-            if self.is_match_template(src, f"{self.switch_theme}/update_notice.png"):
+            if self.is_match_template(src, f"{self._state.theme}/update_notice.png"):
                 self.commands.press(Hat.TOP, 0.1, 0.5)
                 self.commands.press(Button.A, 0.1, 0.5)
-                if not hasattr(self, "notice_update"):
-                    self.notice_update = True
+                if not self._state.notice_update:
+                    self._state.notice_update = True
                     self.commands.discord_text("アップデート通知")
             elif i % 30 == 0:
                 self.commands.press(Button.A, 0.1, 1.5)
@@ -330,7 +340,7 @@ class Switch_util(object):
                 for i in range(8):
                     if self.is_match_template(
                         src,
-                        f"{self.switch_theme}/user_icon_cursor.png",
+                        f"{self._state.theme}/user_icon_cursor.png",
                         0.85,
                         True,
                         [30 + 150 * i, 590, 200 + 150 * i, 640],
@@ -370,7 +380,7 @@ class Switch_util(object):
             src = self.commands.camera.readFrame()
             if self.is_match_template(
                 src,
-                f"{self.switch_theme}/user_select.png",
+                f"{self._state.theme}/user_select.png",
                 0.85,
                 True,
                 [50, 320, 260, 380],
@@ -378,15 +388,15 @@ class Switch_util(object):
                 break
             if self.is_match_template(
                 src,
-                f"{self.switch_theme}/update_notice.png",
+                f"{self._state.theme}/update_notice.png",
                 0.85,
                 True,
                 [480, 350, 810, 470],
             ):
                 self.commands.press(Hat.TOP, 0.1, 0.5)
                 self.commands.press(Button.A, 0.1, 0.5)
-                if not hasattr(self, "notice_update"):
-                    self.notice_update = True
+                if not self._state.notice_update:
+                    self._state.notice_update = True
                     self.commands.discord_text("アップデート通知")
             elif i % 30 == 0:
                 self.commands.press(Button.A, 0.1, 1.5)
@@ -446,7 +456,7 @@ class Switch_util(object):
             self.commands.press(Direction.DOWN, 0.20, 0.1)
             for _ in range(3):
                 if self.is_match_template(
-                    None, f"{self.switch_theme}/select_langage_change.png", 0.9
+                    None, f"{self._state.theme}/select_langage_change.png", 0.9
                 ):
                     break
                 else:
@@ -459,7 +469,7 @@ class Switch_util(object):
             # 正常に言語を選択できたかを検知する。入れなかったらHOMEを押して最初からやり直す。
             if self.is_match_template(
                 None,
-                f"{self.switch_theme}/check_langage_change.png",
+                f"{self._state.theme}/check_langage_change.png",
                 0.9,
                 True,
                 [44, 132, 148, 198],
@@ -484,7 +494,7 @@ class Switch_util(object):
             self.commands.press(Direction.DOWN, 0.20, 0.1)
             for _ in range(3):
                 if self.is_match_template(
-                    None, f"{self.switch_theme}/select_langage_change_cn.png", 0.9
+                    None, f"{self._state.theme}/select_langage_change_cn.png", 0.9
                 ):
                     break
                 else:
@@ -497,7 +507,7 @@ class Switch_util(object):
             # 正常に言語を選択できたかを検知する。入れなかったらHOMEを押して最初からやり直す。
             if self.is_match_template(
                 None,
-                f"{self.switch_theme}/check_langage_change_cn.png",
+                f"{self._state.theme}/check_langage_change_cn.png",
                 0.9,
                 True,
                 [44, 132, 148, 198],
@@ -521,7 +531,7 @@ class Switch_util(object):
         pass
 
     def is_home(self):
-        if hasattr(self, "switch_version"):
+        if self._state.version is not None:
             return self.is_match_template(None, "home.png")
         else:
             src = self.commands.camera.readFrame()
@@ -551,9 +561,9 @@ class Switch_util(object):
         """
         画像判定関数
         """
-        if hasattr(self, "switch_version"):
+        if self._state.version is not None:
             TEMPLATE_PATH = (
-                f"./Commands/PythonCommands/switch_util/image/{self.switch_version}/"
+                f"./Commands/PythonCommands/switch_util/image/{self._state.version}/"
             )
         else:
             TEMPLATE_PATH = "./Commands/PythonCommands/switch_util/image/"
@@ -596,7 +606,7 @@ class Switch_util(object):
         res = cv2.matchTemplate(processed_image, template_image, method)
         _, max_val, _, max_loc = cv2.minMaxLoc(res)
 
-        if self.debug:
+        if self._state.debug:
             if ZNCC_string == "" and isinstance(template, str):
                 ZNCC_string = template
             print(ZNCC_string + " ZNCCの値: " + str(max_val))
@@ -651,9 +661,9 @@ class Switch_util(object):
         """
         画像判定関数
         """
-        if hasattr(self, "switch_version"):
+        if self._state.version is not None:
             TEMPLATE_PATH = (
-                f"./Commands/PythonCommands/switch_util/image/{self.switch_version}/"
+                f"./Commands/PythonCommands/switch_util/image/{self._state.version}/"
             )
         else:
             TEMPLATE_PATH = "./Commands/PythonCommands/switch_util/image/"
@@ -696,7 +706,7 @@ class Switch_util(object):
         res = cv2.matchTemplate(processed_image, template_image, method)
         _, max_val, _, max_loc = cv2.minMaxLoc(res)
 
-        if self.debug:
+        if self._state.debug:
             if ZNCC_string == "" and isinstance(template, str):
                 ZNCC_string = template
             print(ZNCC_string + " ZNCCの値: " + str(max_val))
@@ -839,7 +849,7 @@ class Switch_util(object):
 
         self.get_switch_info()
 
-        if self.switch_version == "switch":
+        if self._state.version == "switch":
             self.move_to_date_and_time_setting_for_switch(reset_time=reset_time)
         else:
             self.move_to_date_and_time_setting_for_switch2(reset_time=reset_time)
@@ -862,7 +872,7 @@ class Switch_util(object):
             self.commands.press(Hat.BTM, duration=0.56, wait=0.1)
             for _ in range(5):
                 if self.is_match_template(
-                    None, f"{self.switch_theme}/select_date_change.png", 0.9
+                    None, f"{self._state.theme}/select_date_change.png", 0.9
                 ):
                     break
                 else:
@@ -876,7 +886,7 @@ class Switch_util(object):
             # 正常に日付と時刻を選択できたかを検知する。入れなかったらHOMEを押して最初からやり直す。
             if self.is_match_template(
                 None,
-                f"{self.switch_theme}/check_change.png",
+                f"{self._state.theme}/check_change.png",
                 0.9,
                 True,
                 [65, 31, 168, 101],
@@ -892,7 +902,7 @@ class Switch_util(object):
             return
 
         # インターネットに同期するにチェックがあったらoffに切り替える
-        if self.is_match_template(None, f"{self.switch_theme}/on.png", 0.9):
+        if self.is_match_template(None, f"{self._state.theme}/on.png", 0.9):
             self.commands.press(Button.A, wait=1.0)
 
         # 現在の日付と時刻を選択
@@ -920,7 +930,7 @@ class Switch_util(object):
             self.send_command(Neutral, wait=0.3)
             for _ in range(5):
                 if self.is_match_template(
-                    None, f"{self.switch_theme}/select_date_change.png", 0.9
+                    None, f"{self._state.theme}/select_date_change.png", 0.9
                 ):
                     break
                 else:
@@ -934,7 +944,7 @@ class Switch_util(object):
             # 正常に日付と時刻を選択できたかを検知する。入れなかったらHOMEを押して最初からやり直す。
             if self.is_match_template(
                 None,
-                f"{self.switch_theme}/check_change.png",
+                f"{self._state.theme}/check_change.png",
                 0.9,
                 True,
                 [69, 27, 118, 78],
@@ -951,7 +961,7 @@ class Switch_util(object):
 
         # インターネットに同期するにチェックがあったらoffに切り替える
         if self.is_match_template(
-            None, f"{self.switch_theme}/on.png", 0.9, True, [949, 107, 1106, 225]
+            None, f"{self._state.theme}/on.png", 0.9, True, [949, 107, 1106, 225]
         ):
             self.commands.press(Button.A, wait=1.0)
 
@@ -966,17 +976,17 @@ class Switch_util(object):
         self.commands.wait(0.5)
         while True:
             if self.is_match_template(
-                None, f"{self.switch_theme}/change_date.png", 0.9
+                None, f"{self._state.theme}/change_date.png", 0.9
             ):
                 break
             elif self.is_match_template(
                 None,
-                f"{self.switch_theme}/check_change.png",
+                f"{self._state.theme}/check_change.png",
                 0.9,
                 True,
                 (
                     [65, 31, 168, 101]
-                    if self.switch_version == "switch"
+                    if self._state.version == "switch"
                     else [69, 27, 118, 78]
                 ),
             ):
@@ -986,9 +996,9 @@ class Switch_util(object):
                 self.commands.finish()
             if self.is_match_template(
                 None,
-                f"{self.switch_theme}/on.png",
+                f"{self._state.theme}/on.png",
                 0.9,
-                False if self.switch_version == "switch" else True,
+                False if self._state.version == "switch" else True,
                 [949, 107, 1106, 225],
             ):
                 self.send_command(Lstick_up, wait=0.04)
@@ -1019,7 +1029,7 @@ class Switch_util(object):
         )  # 時刻変更でminを変更しない場合はwaitを大きくすること。
         self.send_command(Neutral, wait=0.20)
 
-        if init and self.switch_version == "switch":
+        if init and self._state.version == "switch":
             self.send_command(Rstick_left, wait=0.04)
             self.send_command(Lstick_left, wait=0.04)
             self.send_command(Rstick_left, wait=0.04)
@@ -1114,7 +1124,7 @@ class Switch_util(object):
         """
         設定メニューまで移動する
         """
-        if self.switch_version == "switch":
+        if self._state.version == "switch":
             self.move_to_setting_menu_for_switch()
         else:
             self.move_to_setting_menu_for_switch2()
@@ -1185,11 +1195,11 @@ class Switch_util(object):
         日時検出(OCR不使用)
         """
         TEMPLATE_PATH = (
-            f"./Commands/PythonCommands/switch_util/image/{self.switch_version}/"
+            f"./Commands/PythonCommands/switch_util/image/{self._state.version}/"
         )
 
         src = self.commands.camera.readFrame()
-        if self.switch_version == "switch":
+        if self._state.version == "switch":
             if num == 0:
                 src = src[437:500, 182:336]
                 sel_color = 0  # 選択時
@@ -1221,7 +1231,7 @@ class Switch_util(object):
         box = []
         for test in charlist:
             char_file_name = (
-                TEMPLATE_PATH + f"{self.switch_theme}/character/{test}_{sel_color}.png"
+                TEMPLATE_PATH + f"{self._state.theme}/character/{test}_{sel_color}.png"
             )
             if os.path.exists(char_file_name):
                 template = cv2.imread(char_file_name)
@@ -1261,7 +1271,7 @@ class Switch_util(object):
         """
         高速日時変更(数値変更部分)
         """
-        if self.switch_version == "switch":
+        if self._state.version == "switch":
             wait_time = 0.04
         else:
             wait_time = 0.1
@@ -1285,7 +1295,7 @@ class Switch_util(object):
         """
         年を1年増やす
         """
-        if self.switch_version == "switch":
+        if self._state.version == "switch":
             wait_time = 0.04
             if ensure_change:
                 self.ensure_date_and_time_changeable()
@@ -1340,7 +1350,7 @@ class Switch_util(object):
         else:
             self.send_command(Button_A, wait=wait_time)
             self.send_command(Neutral, wait=0.16)
-        if self.switch_version == "switch":
+        if self._state.version == "switch":
             self.send_command(Rstick_down, wait=wait_time)
             self.send_command(Lstick_down, wait=wait_time)
             self.send_command(Rstick_left, wait=wait_time)
@@ -1386,7 +1396,7 @@ class Switch_util(object):
         else:
             self.send_command(Button_A, wait=wait_time)
             self.send_command(Neutral, wait=0.16)
-        if self.switch_version == "switch":
+        if self._state.version == "switch":
             self.send_command(Rstick_down, wait=wait_time)
             self.send_command(Lstick_down, wait=wait_time)
             self.send_command(Rstick_left, wait=wait_time)
@@ -1426,7 +1436,7 @@ class Switch_util(object):
         """
         日を1日増やす
         """
-        if self.switch_version == "switch":
+        if self._state.version == "switch":
             wait_time = 0.04
             if ensure_change:
                 self.ensure_date_and_time_changeable()
