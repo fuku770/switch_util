@@ -42,7 +42,12 @@ class Switch_util(object):
 
     def __init__(self, commands: ImageProcPythonCommand):
         self.commands = commands
-        self._state = _SwitchState(debug=getattr(commands, "debug", False))
+        # 同じコマンド内で生成された Switch_util 間で状態を共有する
+        state = getattr(commands, "_switch_util_state", None)
+        if state is None:
+            state = _SwitchState(debug=getattr(commands, "debug", False))
+            commands._switch_util_state = state
+        self._state = state
 
     def get_switch_info(self):
         """
